@@ -1,8 +1,9 @@
 import numpy as np
+
 from weather_ml import (
-    generate_mock_weather_data,
     build_model,
     evaluate_model,
+    generate_mock_weather_data,
     train_and_evaluate,
 )
 
@@ -44,7 +45,6 @@ def test_model_serialization(tmp_path):
     X_train = X.iloc[:-20]
     y_train = y.iloc[:-20]
     X_test = X.iloc[-20:]
-    y_test = y.iloc[-20:]
 
     model = build_model(X_train, y_train, n_estimators=10, random_state=0)
     preds_before = model.predict(X_test)
@@ -58,3 +58,15 @@ def test_model_serialization(tmp_path):
 
     # Predictions should be identical (same model state)
     assert np.allclose(preds_before, preds_after)
+
+
+def test_deterministic_with_random_state():
+    # Ensure same seed and model params produce identical metrics
+    df1 = generate_mock_weather_data(n_days=80, seed=42)
+    df2 = generate_mock_weather_data(n_days=80, seed=42)
+
+    m1 = train_and_evaluate(df1, n_estimators=20, random_state=0)
+    m2 = train_and_evaluate(df2, n_estimators=20, random_state=0)
+
+    assert abs(m1["mae"] - m2["mae"]) < 1e-8
+    assert abs(m1["r2"] - m2["r2"]) < 1e-8

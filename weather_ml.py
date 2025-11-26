@@ -1,12 +1,11 @@
-import numpy as np
-import pandas as pd
 from datetime import datetime, timedelta
 
-from sklearn.model_selection import train_test_split
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error, r2_score
-
-import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
 
 
 def generate_mock_weather_data(n_days: int = 365 * 3, seed: int = 42) -> pd.DataFrame:
@@ -63,19 +62,33 @@ def generate_mock_weather_data(n_days: int = 365 * 3, seed: int = 42) -> pd.Data
     return df
 
 
-def build_model(X_train: pd.DataFrame, y_train: pd.Series, **model_kwargs) -> RandomForestRegressor:
-    """Create and fit a RandomForestRegressor. Extra kwargs are forwarded to the constructor."""
-    model = RandomForestRegressor(
-        n_estimators=200,
-        random_state=42,
-        n_jobs=-1,
-        **model_kwargs,
-    )
+def build_model(
+    X_train: pd.DataFrame,
+    y_train: pd.Series,
+    **model_kwargs,
+) -> RandomForestRegressor:
+    """Create and fit a RandomForestRegressor.
+
+    Extra kwargs are forwarded to the constructor.
+    """
+    params = {
+        "n_estimators": 200,
+        "random_state": 42,
+        "n_jobs": -1,
+    }
+    params.update(model_kwargs)
+
+    model = RandomForestRegressor(**params)
     model.fit(X_train, y_train)
     return model
 
 
-def evaluate_model(model: RandomForestRegressor, X_test: pd.DataFrame, y_test: pd.Series, plot: bool = True) -> dict:
+def evaluate_model(
+    model: RandomForestRegressor,
+    X_test: pd.DataFrame,
+    y_test: pd.Series,
+    plot: bool = True,
+) -> dict:
     """Evaluate `model` on test data and optionally plot predictions.
 
     Returns a dict: {'mae': float, 'r2': float, 'y_pred': np.ndarray}
@@ -91,8 +104,20 @@ def evaluate_model(model: RandomForestRegressor, X_test: pd.DataFrame, y_test: p
     if plot:
         sample_idx = np.arange(0, min(100, len(y_test)))
         plt.figure(figsize=(10, 5))
-        plt.plot(sample_idx, y_test.iloc[sample_idx].values, label="True", marker="o", linestyle="-")
-        plt.plot(sample_idx, y_pred[sample_idx], label="Predicted", marker="x", linestyle="--")
+        plt.plot(
+            sample_idx,
+            y_test.iloc[sample_idx].values,
+            label="True",
+            marker="o",
+            linestyle="-",
+        )
+        plt.plot(
+            sample_idx,
+            y_pred[sample_idx],
+            label="Predicted",
+            marker="x",
+            linestyle="--",
+        )
         plt.title("Next-Day Temperature Prediction (sample)")
         plt.xlabel("Sample index")
         plt.ylabel("Temperature (°C)")

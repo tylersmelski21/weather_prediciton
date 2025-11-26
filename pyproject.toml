@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=65.5.1", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.black]
+line-length = 88
+target-version = ["py310"]
+
+[tool.ruff]
+line-length = 88
+extend-select = ["E", "F"]
+
+[tool.isort]
+profile = "black"
+
+[project]
+name = "weather_prediciton"
+version = "0.0.0"
+description = "Synthetic NYC weather prediction demo"
+authors = [ { name = "Tyler Smelski" } ]
