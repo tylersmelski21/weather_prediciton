@@ -32,3 +32,29 @@ def test_train_and_evaluate_returns_metrics():
     df = generate_mock_weather_data(n_days=60, seed=1)
     metrics = train_and_evaluate(df, n_estimators=10)
     assert "mae" in metrics and "r2" in metrics
+
+
+def test_model_serialization(tmp_path):
+    # Ensure model can be saved and loaded with joblib and predictions remain consistent
+    df = generate_mock_weather_data(n_days=80, seed=2)
+    features = ["avg_temp", "humidity", "wind_speed", "pressure"]
+    X = df[features]
+    y = df["next_day_temp"]
+
+    X_train = X.iloc[:-20]
+    y_train = y.iloc[:-20]
+    X_test = X.iloc[-20:]
+    y_test = y.iloc[-20:]
+
+    model = build_model(X_train, y_train, n_estimators=10, random_state=0)
+    preds_before = model.predict(X_test)
+
+    import joblib
+
+    p = tmp_path / "model.joblib"
+    joblib.dump(model, p)
+    loaded = joblib.load(p)
+    preds_after = loaded.predict(X_test)
+
+    # Predictions should be identical (same model state)
+    assert np.allclose(preds_before, preds_after)
