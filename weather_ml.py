@@ -63,7 +63,53 @@ def generate_mock_weather_data(n_days: int = 365 * 3, seed: int = 42) -> pd.Data
     return df
 
 
-def train_and_evaluate(df: pd.DataFrame) -> None:
+def build_model(X_train: pd.DataFrame, y_train: pd.Series, **model_kwargs) -> RandomForestRegressor:
+    """Create and fit a RandomForestRegressor. Extra kwargs are forwarded to the constructor."""
+    model = RandomForestRegressor(
+        n_estimators=200,
+        random_state=42,
+        n_jobs=-1,
+        **model_kwargs,
+    )
+    model.fit(X_train, y_train)
+    return model
+
+
+def evaluate_model(model: RandomForestRegressor, X_test: pd.DataFrame, y_test: pd.Series, plot: bool = True) -> dict:
+    """Evaluate `model` on test data and optionally plot predictions.
+
+    Returns a dict: {'mae': float, 'r2': float, 'y_pred': np.ndarray}
+    """
+    y_pred = model.predict(X_test)
+    mae = mean_absolute_error(y_test, y_pred)
+    r2 = r2_score(y_test, y_pred)
+
+    print("RandomForestRegressor results (NYC mock weather):")
+    print(f"  MAE: {mae:.2f} °C")
+    print(f"  R^2: {r2:.3f}")
+
+    if plot:
+        sample_idx = np.arange(0, min(100, len(y_test)))
+        plt.figure(figsize=(10, 5))
+        plt.plot(sample_idx, y_test.iloc[sample_idx].values, label="True", marker="o", linestyle="-")
+        plt.plot(sample_idx, y_pred[sample_idx], label="Predicted", marker="x", linestyle="--")
+        plt.title("Next-Day Temperature Prediction (sample)")
+        plt.xlabel("Sample index")
+        plt.ylabel("Temperature (°C)")
+        plt.legend()
+        plt.tight_layout()
+        plt.show()
+
+    return {"mae": mae, "r2": r2, "y_pred": y_pred}
+
+
+def train_and_evaluate(df: pd.DataFrame, **model_kwargs) -> None:
+    """Train a RandomForestRegressor on the provided dataframe and evaluate it.
+
+    Any extra keyword arguments are forwarded to `RandomForestRegressor` constructor
+    (they override the file's defaults when provided).
+    """
+
     features = ["avg_temp", "humidity", "wind_speed", "pressure"]
     target = "next_day_temp"
 
@@ -74,33 +120,11 @@ def train_and_evaluate(df: pd.DataFrame) -> None:
         X, y, test_size=0.2, random_state=42
     )
 
-    model = RandomForestRegressor(
-        n_estimators=200,
-        random_state=42,
-        n_jobs=-1,
-    )
-    model.fit(X_train, y_train)
-
-    y_pred = model.predict(X_test)
-
-    mae = mean_absolute_error(y_test, y_pred)
-    r2 = r2_score(y_test, y_pred)
-
-    print("RandomForestRegressor results (NYC mock weather):")
-    print(f"  MAE: {mae:.2f} °C")
-    print(f"  R^2: {r2:.3f}")
-
-    # Plot a small sample of true vs predicted
-    sample_idx = np.arange(0, min(100, len(y_test)))
-    plt.figure(figsize=(10, 5))
-    plt.plot(sample_idx, y_test.iloc[sample_idx].values, label="True", marker="o", linestyle="-")
-    plt.plot(sample_idx, y_pred[sample_idx], label="Predicted", marker="x", linestyle="--")
-    plt.title("Next-Day Temperature Prediction (sample)")
-    plt.xlabel("Sample index")
-    plt.ylabel("Temperature (°C)")
-    plt.legend()
-    plt.tight_layout()
-    plt.show()
+    # Build and evaluate using small helpers so callers can reuse them.
+    model = build_model(X_train, y_train, **model_kwargs)
+    metrics = evaluate_model(model, X_test, y_test, plot=True)
+    # metrics dict contains 'mae' and 'r2' (returned for programmatic use)
+    return metrics
 
 
 def main() -> None:
